@@ -4,7 +4,7 @@ import Button from './UI/Button';
 import { jobsActions } from '../store/jobs-slice';
 import { Link } from 'react-router-dom';
 import Card from './UI/Card';
-import { useState } from 'react';
+import React, { useDeferredValue, useState } from 'react';
 import { TagsInput } from 'react-tag-input-component';
 
 const JobListings = () => {
@@ -12,8 +12,30 @@ const JobListings = () => {
     const authDetails = useSelector((state) => state.auth);
     const dispatchFn = useDispatch();
     const [filterTags, setFilterTags] = useState([]);
+    const deferredFilterTags = useDeferredValue(filterTags);
     const jobs = jobsState.jobs;
     const authState = useSelector((state) => state.auth);
+
+    let filteredJobs;
+
+    filteredJobs = React.useMemo(
+        () =>
+            jobs.filter((job) => {
+                return job.tags
+                    .map((e) => e.trim())
+                    .some(
+                        (tag) =>
+                            deferredFilterTags.includes(tag) ||
+                            deferredFilterTags.includes(job.salary)
+                    );
+            }),
+        [deferredFilterTags, jobs]
+    );
+
+    if (deferredFilterTags.length === 0) {
+        filteredJobs = jobs;
+    }
+
     if (jobs.length === 0) {
         return (
             <div className={classes.message}>
@@ -38,20 +60,6 @@ const JobListings = () => {
             })
         );
     };
-
-    let filteredJobs = jobs;
-
-    if (filterTags.length > 0) {
-        filteredJobs = jobs.filter((job) => {
-            return job.tags
-                .map((e) => e.trim())
-                .some(
-                    (tag) =>
-                        filterTags.includes(tag) ||
-                        filterTags.includes(job.salary)
-                );
-        });
-    }
 
     return (
         <div className={classes.container}>
